@@ -12,5 +12,9 @@
         "xml": "^1.0.0"
     },
     
-    "license": "CC-BY-4.0"
+    "license": "CC-BY-4.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ymz-rocks/smux.git"
+    }
 }
