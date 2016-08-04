@@ -1,0 +1,168 @@
+{
+    init: function(service, plugs)
+    {
+        class Item
+        {
+            constructor()
+            {
+                this.timestamp = new Date().getTime();
+                this.heads = {};
+            }
+        }
+        
+        class Cache
+        {
+            constructor()
+            {
+                this.config = {};
+                this.handlers = {};
+                this.heads = [];
+                this.plugs = plugs;
+                this.set = {};
+                this.service = service;
+                
+                for (let i in service.apps)
+                {
+                    this.refresh(service.apps[i]);
+                }
+            }
+            
+            headers(app, request, response, cached, append)
+            {
+                if (append) response.set(cached.heads);
+                else if (this.config[app])
+                {
+                    let heads = this.config[app].heads; if (!heads) return;
+                    
+                    for (var i in heads)
+                    {
+                        cached.heads[heads[i]] = response.get(heads[i]);
+                    }
+                    
+                    return true;
+                }
+            }
+            
+            log(action, response, request)
+            {
+                var log = this.plugs['smux-log'];
+                
+                if (log && log.instance)
+                {
+                    log.instance.post(action, response, request);
+                }
+                else console.log(action + ' ' + request.originalUrl);
+            }
+            
+            refresh(app)
+            {
+                if (this.handlers[app.name])
+                {
+                    clearInterval(this.handlers[app.name]);
+                    
+                    delete this.handlers[app.name];
+                }
+                
+                if (!app.cache) return; var ctx = this, service = this.service;
+
+                this.config[app.name] = app.cache;
+                if (this.config[app.name].ttl) this.config[app.name].ttl *= 1000;
+                
+                this.set[service.name] = this.set[service.name] || {};
+                this.set[service.name][app.name] = this.set[service.name][app.name] || {};
+                
+                if (!app.cache.clear || app.cache.clear < 1) return;
+                
+                this.handlers[app.name] = setInterval(function()
+                {
+                    if (!ctx.set[service.name] || !ctx.set[service.name][app.name]) return;
+                    
+                    var now = new Date().getTime();
+                    
+                    for (var method in ctx.set[service.name][app.name])
+                    {
+                        for (var path in ctx.set[service.name][app.name][method])
+                        {
+                            if (now - ctx.set[service.name][app.name][method][path] > app.cache.clear)
+                            {
+                                delete ctx.set[service.name][app.name][method][path];
+                            }
+                        }
+                    }
+                    
+                }, app.cache.clear);
+            }
+
+            request(service, request, response)
+            {
+                request.gen = true; if (request.hostname != service.name) return;
+        
+                var app = request.originalUrl.split('/')[1], cache = this.config[app], ctx = this; if (!cache) return;
+
+                this.verify(app, request, function(cached)
+                {
+                    var now = new Date().getTime();
+                   
+                    if (cached && cached.result && ((cache.ttl && cache.ttl > 0 && now - cached.timestamp < cache.ttl) || !cache.ttl))
+                    {
+                        request.process = cached.result.gen = false;
+                        
+                        ctx.headers(app, request, response, cached, true);
+                        
+                        response.result = cached.result;
+                        
+                        ctx.log('CACHE', response.result, request);
+                    }
+                    else return true;
+                });
+            }
+            
+            verify(app, request, process)
+            {
+                this.set[request.hostname] = this.set[request.hostname] || {};
+                
+                var set = this.set[request.hostname][app]; set = set || {};
+
+                var path = request.path; if (Object.getOwnPropertyNames(request.body).length) path += JSON.stringify(request.body);
+                
+                set[request.method] = set[request.method] || {};
+                
+                if (set[request.method][path])
+                {
+                    if (process(set[request.method][path])) set[request.method][path] = new Item();
+                }
+                else process(set[request.method][path] = new Item());
+            }
+        }
+       
+        return new Cache();
+    },
+    
+    error: function(exception)
+    {
+        console.log('CACHE   ' + exception.message);
+    },
+
+    unroute: function(app, entry)
+    {
+        if (!entry) delete this.set[this.service.name][app.name];
+    },
+    
+    request: function(service, request, response)
+    {
+        this.request(service, request, response);
+    },
+    
+    response: function(app, request, response, result, file)
+    {
+        var ctx = this;
+
+        this.verify(app.name, request, function(cached)
+        {
+            if (ctx.headers(app.name, request, response, cached))
+            {
+                cached.result = result;
+            }
+        }); 
+    },
+}

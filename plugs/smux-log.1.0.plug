@@ -1,0 +1,163 @@
+{
+    init: function(service, plugs)
+    {
+        class Log
+        {
+            constructor()
+            {
+                this.refresh(service);
+            }
+            
+            console(action, response, request)
+            {
+                console.log(this.format(action, response, request));
+            }
+            
+            file(action, response, request)
+            {
+                if (!this.dir) return;
+            
+                var log = this, path = this.service.path + '/' + (typeof this.service.log.fs == 'string' ? this.service.log.fs : '.log') + '/';
+                
+                fs.stat(path, function(error, stats) 
+                {
+                    if (error)
+                    {
+                        if (log.dir)
+                        {
+                            log.dir = false; log.console('MKDIR', 'please create the log dir', request);
+                        }
+
+                        return;
+                    }
+                    
+                    log.dir = true; fs.appendFile(path + 'smux-' + log.timestamp(true), log.format(action, response, request) + '\n', function (error) 
+                    {
+                        if (error) log.console(action, error, request);
+                    });
+                });
+            }
+
+            format(action, response, request)
+            {
+                var source = this.service.name + ':' + this.service.port,
+                    url = request ? (request.originalUrl + ' | ') : '',
+                    message = response ? (typeof(response) == 'object' ? JSON.stringify(response) : response) : '';
+                    
+                if (!action && request) action = request.method; action = action || ' ';
+                    
+                return this.timestamp() + ' ' + source + ' ' + (action + new Array(9 - action.length).join(' ')) + url + message;
+            }
+            
+            post(action, response, request)
+            {
+                if (this.handlers.length == 0) return this;
+                
+                for (let i in this.handlers)
+                {
+                    this.handlers[i].call(this, action, response, request);
+                }
+                
+                return this;
+            }
+            
+            refresh(service)
+            {
+                this.service = service;
+                this.handlers = [];
+
+                if (!service.log) return;
+                
+                if (service.log.console) this.handlers.push(this.console);
+                if (service.log.fs) 
+                {
+                    this.dir = true;
+                    this.handlers.push(this.file);
+                }
+            }
+            
+            timestamp(today)
+            {
+                var now = new Date(),
+                    sections = today ?
+                    [
+                        now.getFullYear(), 
+                        now.getMonth() + 1, 
+                        now.getDate()
+                    ] :
+                    [ 
+                        now.getFullYear(), 
+                        now.getMonth() + 1, 
+                        now.getDate(),
+                        now.getHours(), 
+                        now.getMinutes(), 
+                        now.getSeconds()
+                    ];
+
+                for (let i = 1; i < sections.length; i++) 
+                {
+                    sections[i] = ('00' + sections[i]).substr(-2);
+                }
+                
+                if (!today) sections.push(('000' + now.getMilliseconds()).substr(-3));
+                
+                return sections.join('');
+            }
+            
+        }
+        
+        return new Log().post('INIT');
+    },
+    
+    error: function(exception)
+    {
+        console.log('LOG      ' + exception.message);
+    },
+    
+    load: function(app)
+    {
+        if (app)
+        {
+            this.post('START', app.name);
+        }
+        else
+        {
+            this.post('ECHO', 'i m ready :)');
+        }
+    },
+    
+    response: function(app, request, response, result, file)
+    {
+        this.post(undefined, result, request);
+    },
+    
+    warning: function (info)
+    {
+        this.post(info.message);
+    },
+    
+    refresh: function(app)
+    {
+        if (app)
+        {
+            this.post('REFRESH', app.name);
+        }
+    },
+    
+    unload: function(app)
+    {
+        if (app)
+        {
+            this.post('STOP', app.name);
+        }
+        else
+        {
+            this.post('EXIT');
+        }
+    },
+    
+    terminated: function()
+    {
+        this.post('ECHO', 'bye bye');
+    }
+}

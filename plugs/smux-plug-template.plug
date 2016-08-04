@@ -1,0 +1,128 @@
+{
+    init: function(service, plugs)
+    {
+        var plug = 
+        { 
+            service: service,
+            name: 'fake-plugin' 
+        };
+        
+        // TODO: add more data and logic to the 'plug' object
+        
+        return plug;
+    },
+    
+    error: function(exception)
+    {
+        // raised if an error occured while applying this plug
+    },
+    
+    load: function(app)
+    {
+        if (app)
+        {
+            // load event for a specific app
+        }
+        else
+        {
+            // service load event
+        }
+    },
+    
+    request: function(service, request, response)
+    {
+        // a general event for each incoming request to the service
+        
+        // request.deatils = 'why did i blocked this request'; // uncomment this line -> only if this request is blocked
+        // return request.process = false; // uncomment this line -> block this request
+    },
+    
+    compute: function(app, request, response, params)
+    {
+        // serve every request for a specific app, before the actual computing process
+        
+        if (params)
+        {
+            // this request has url parameters
+        }
+        
+        // request.deatils = 'computing stuf? meh..'; // uncomment this line -> only if this request is not computed
+        // return request.process = false; // uncomment this line -> do not compute this request
+    },
+    
+    file: function(service, request, response)
+    {
+        // this request url has no match in service routes and therefor will try to serve a file with the same url
+        
+        // request.deatils = 'i don't want you to read this file'; // uncomment this line -> only if this url is ignored
+        // return request.process = false; // uncomment this line -> ignore file with this url
+    },
+
+    response: function(app, request, response, result, file)
+    {
+        if (file)
+        {
+            // the response result reflects a file with the same url of the request
+        }
+        else
+        {
+            // the response result reflects a computing process
+        }
+    },
+    
+    warning: function (info)
+    {
+        // a warning was captured (so... there is no need to inform the client about that)
+    },
+    
+    refresh: function(app)
+    {
+        if (app)
+        {
+            // refresh event for a specific app
+        }
+        else
+        {
+            // service refresh event
+        }
+    },
+    
+    route: function(app, entry)
+    {
+        // occurs whenever a route in a specific app is added or updated
+        
+        // request.deatils = 'why i decided to ignore this route'; // uncomment this line -> only if this entry is ignored
+        // return entry.process = false; // uncomment this line -> ignore this entry (do not add or update)
+    },
+    
+    unroute: function(app, entry)
+    {
+        if (entry)
+        {
+             // unroute event for a specific entry in app
+             
+             // return entry.process = true; // uncomment this line -> save this entry from beeing blocked
+        }
+        else
+        {
+            // occurs whenever all routes of a specific app are blocked and therefore there is no service from this app
+        }
+    },
+    
+    unload: function(app)
+    {
+        if (app)
+        {
+            // unload event for a specific app
+        }
+        else
+        {
+            // service unload event
+        }
+    },
+    
+    terminated: function()
+    {
+        // last thing to do before process.exit()
+    }
+}
