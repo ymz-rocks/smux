@@ -2,7 +2,7 @@
 
 [poster]:https://raw.githubusercontent.com/ymz-rocks/emblems/master/smux/logo.png "smux project"
 
-# smux (node.js service multiplexer)
+# smux (node.js services multiplexer)
 
 Ever wondered what would it be like if your web service could do more then just... serve?
 With __smux__ your service can do WAY more stuff with extreme ease.
@@ -32,12 +32,12 @@ With __smux__ your service can do WAY more stuff with extreme ease.
 
 1. Download this repository
 2. Copy the _simple service_ folder in a suitable location (this folder would be your working folder)
-3. Open _service.config_ file and validate the configuration (for instance: make sure the port number is free for use)
+3. Open _service.config_ file and validate the configuration (for instance: make sure port number is not already taken)
 4. Make sure that you have node installed properly on your machine
 5. Open the terminal (or command prompt if you use windows) and navigate to the working folder location
 6. Type __node service.js__
 7. Your first service is up and running!
-8. Open your browser and insert the following url: __http://127.0.0.1/test1__
+8. Open your browser and insert the following url: __http://localhost:7008/test1__
 9. Browse the 3 test apps and navigate between apps and end-points
 10. Stop the service by hitting __Ctrl+C__ over the service terminal window
 
